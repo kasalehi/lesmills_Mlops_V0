@@ -1,45 +1,314 @@
-Overview
-========
 
-Welcome to Astronomer! This project was generated after you ran 'astro dev init' using the Astronomer CLI. This readme describes the contents of the project, as well as how to run Apache Airflow on your local machine.
+# Les Mills Retention Prediction Platform
 
-Project Contents
-================
+## Overview
+This project implements an end-to-end Machine Learning pipeline for predicting customer churn risk using **Apache Airflow (Astro), Docker, and Streamlit**.
 
-Your Astro project contains the following files and folders:
+The system performs the following workflow:
 
-- dags: This folder contains the Python files for your Airflow DAGs. By default, this directory includes one example DAG:
-    - `example_astronauts`: This DAG shows a simple ETL pipeline example that queries the list of astronauts currently in space from the Open Notify API and prints a statement for each astronaut. The DAG uses the TaskFlow API to define tasks in Python, and dynamic task mapping to dynamically print a statement for each astronaut. For more on how this DAG works, see our [Getting started tutorial](https://www.astronomer.io/docs/learn/get-started-with-airflow).
-- Dockerfile: This file contains a versioned Astro Runtime Docker image that provides a differentiated Airflow experience. If you want to execute other commands or overrides at runtime, specify them here.
-- include: This folder contains any additional files that you want to include as part of your project. It is empty by default.
-- packages.txt: Install OS-level packages needed for your project by adding them to this file. It is empty by default.
-- requirements.txt: Install Python packages needed for your project by adding them to this file. It is empty by default.
-- plugins: Add custom or community plugins for your project to this file. It is empty by default.
-- airflow_settings.yaml: Use this local-only file to specify Airflow Connections, Variables, and Pools instead of entering them in the Airflow UI as you develop DAGs in this project.
+SQL Server → Airflow Pipeline → Feature Engineering → ML Prediction → Save Results → Streamlit Dashboard
 
-Deploy Your Project Locally
-===========================
+The pipeline runs automatically through Airflow, and the Streamlit application allows users to upload or view datasets and run predictions using the trained model.
 
-Start Airflow on your local machine by running 'astro dev start'.
+---
 
-This command will spin up five Docker containers on your machine, each for a different Airflow component:
+# Architecture
 
-- Postgres: Airflow's Metadata Database
-- Scheduler: The Airflow component responsible for monitoring and triggering tasks
-- DAG Processor: The Airflow component responsible for parsing DAGs
-- API Server: The Airflow component responsible for serving the Airflow UI and API
-- Triggerer: The Airflow component responsible for triggering deferred tasks
+SQL Server
+    ↓
+Airflow DAG (Astro + Docker)
+    ↓
+Feature Engineering & Data Merge
+    ↓
+Load Trained Model
+    ↓
+Save Predictions Dataset
+    ↓
+Streamlit Dashboard
 
-When all five containers are ready the command will open the browser to the Airflow UI at http://localhost:8080/. You should also be able to access your Postgres Database at 'localhost:5432/postgres' with username 'postgres' and password 'postgres'.
+---
 
-Note: If you already have either of the above ports allocated, you can either [stop your existing Docker containers or change the port](https://www.astronomer.io/docs/astro/cli/troubleshoot-locally#ports-are-not-available-for-my-local-airflow-webserver).
+# Project Structure
 
-Deploy Your Project to Astronomer
-=================================
+```
+lesmills-ml-pipeline
+│
+├── dags/
+│   └── lesmills_retention.py
+│
+├── src/
+│   └── les/
+│       ├── ingest.py
+│       ├── transform.py
+│       ├── train.py
+│       ├── utils.py
+│       ├── predict.py
+│       └── logger.py
+│
+├── include/
+│   ├── artifacts/
+│   │   ├── model.pkl
+│   │   └── preprocessor.pkl
+│   │
+│   ├── data/
+│   │   └── predictions.csv
+│   │
+│   └── lesmills_project/
+│       └── streamlit.py
+│
+├── requirements.txt
+├── Dockerfile
+├── airflow_settings.yaml
+└── README.md
+```
 
-If you have an Astronomer account, pushing code to a Deployment on Astronomer is simple. For deploying instructions, refer to Astronomer documentation: https://www.astronomer.io/docs/astro/deploy-code/
+---
 
-Contact
-=======
+# Prerequisites
 
-The Astronomer CLI is maintained with love by the Astronomer team. To report a bug or suggest a change, reach out to our support.
+Install the following:
+
+- Docker
+- Astronomer CLI
+- Git
+- Python 3.10+
+
+Install Astronomer CLI:
+https://docs.astronomer.io/astro/cli/install-cli
+
+Verify installation:
+
+```
+astro version
+```
+
+---
+
+# Running the Project Locally
+
+## Step 1 — Clone the Repository
+
+```
+git clone https://github.com/kasalehi/lesmills.git
+cd lesmills
+```
+
+---
+
+# Step 2 — Start Airflow with Astro
+
+Run:
+
+```
+astro dev start
+```
+
+This starts Docker containers for:
+
+- Airflow Scheduler
+- Airflow Webserver
+- DAG Processor
+- Triggerer
+- PostgreSQL metadata database
+
+Airflow UI will be available at:
+
+http://localhost:8080
+
+Default credentials:
+
+username: admin  
+password: admin
+
+---
+
+# Step 3 — Trigger the Pipeline
+
+Open the Airflow UI.
+
+Navigate to the DAG:
+
+```
+lesmills
+```
+
+Click **Trigger DAG**.
+
+The pipeline will perform:
+
+1. Read data from SQL Server
+2. Generate snapshots
+3. Merge dataset
+4. Load trained ML model
+5. Run predictions
+6. Save results
+
+Predictions are saved in:
+
+```
+include/data/predictions.csv
+```
+
+---
+
+# Step 4 — Run the Streamlit Application
+
+Open a terminal and run:
+
+```
+astro dev bash
+```
+
+Then start Streamlit:
+
+```
+streamlit run include/lesmills_project/streamlit.py --server.port 8501 --server.address 0.0.0.0
+```
+
+Open the Streamlit dashboard:
+
+http://localhost:8501
+
+---
+
+# Using the Streamlit Dashboard
+
+The Streamlit application allows users to:
+
+- Upload a CSV dataset
+- Run predictions using the trained model
+- View prediction results
+- Download prediction outputs
+
+The model and preprocessing pipeline are loaded from:
+
+```
+include/artifacts/model.pkl
+include/artifacts/preprocessor.pkl
+```
+
+---
+
+# Data Flow
+
+Airflow DAG
+    ↓
+Extract data from SQL Server
+    ↓
+Create snapshot dataset
+    ↓
+Merge features
+    ↓
+Load trained ML model
+    ↓
+Predict churn probability
+    ↓
+Save predictions.csv
+    ↓
+Streamlit reads predictions
+
+---
+
+# Model Training (Optional)
+
+The project initially trains a model using:
+
+- Random Forest
+- Gradient Boosting
+- GridSearchCV
+
+Artifacts are stored in:
+
+```
+include/artifacts/
+```
+
+Files:
+
+```
+model.pkl
+preprocessor.pkl
+```
+
+Once the model is trained, the pipeline switches to **prediction mode**.
+
+---
+
+# Environment Variables
+
+Secrets such as service credentials should **not be committed to Git**.
+
+Use environment variables or `.env` files instead.
+
+Example:
+
+```
+GOOGLE_APPLICATION_CREDENTIALS=/path/to/key.json
+```
+
+---
+
+# Development Workflow
+
+Typical workflow for developers:
+
+1. Start Astro
+2. Trigger Airflow DAG
+3. Generate predictions dataset
+4. Launch Streamlit UI
+5. Upload dataset or view predictions
+
+---
+
+# Useful Commands
+
+Start Airflow:
+
+```
+astro dev start
+```
+
+Stop Airflow:
+
+```
+astro dev stop
+```
+
+Restart Airflow:
+
+```
+astro dev restart
+```
+
+Enter container:
+
+```
+astro dev bash
+```
+
+Run Streamlit:
+
+```
+streamlit run include/lesmills_project/streamlit.py
+```
+
+---
+
+# Future Improvements
+
+Possible enhancements:
+
+- Model versioning
+- Prediction monitoring
+- Automated model retraining
+- Feature drift detection
+- Streamlit analytics dashboards
+
+---
+
+# Author
+
+Keyvan Salehi
+
+Data Engineer / Data Scientist / Data Analyst
+Les Mills New Zealand
