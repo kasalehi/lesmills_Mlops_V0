@@ -4,20 +4,25 @@ on:
   workflow_dispatch:
 
 jobs:
-  run-pipeline:
+  run-dag:
 
     runs-on: ubuntu-latest
 
     steps:
 
-      - name: Checkout repo
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
+
+      - name: Install Astro CLI
+        run: |
+          curl -sSL https://install.astronomer.io | sudo bash
+
+      - name: Clean Astro config
+        run: rm -rf ~/.astro
 
       - name: Start Airflow
-        run: |
-          docker compose up
+        run: astro dev start
 
       - name: Wait for Airflow
         run: sleep 60
 
-    
+      
