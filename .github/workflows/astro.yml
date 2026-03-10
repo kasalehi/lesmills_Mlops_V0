@@ -19,7 +19,7 @@ jobs:
 
       - name: Start Astro
         run: |
-          astro dev start
+          docker compose up -d
 
       - name: Wait for Airflow
         run: sleep 60
