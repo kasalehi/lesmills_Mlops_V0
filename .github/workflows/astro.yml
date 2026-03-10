@@ -15,7 +15,7 @@ jobs:
 
       - name: Start Airflow
         run: |
-          docker compose up -d
+          docker compose up
 
       - name: Wait for Airflow
         run: sleep 60
