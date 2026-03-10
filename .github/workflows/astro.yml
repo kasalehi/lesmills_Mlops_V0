@@ -1,25 +1,23 @@
 name: Run Les Mills Pipeline
 
 on:
-  workflow_dispatch:   # allows manual run from GitHub UI
+  workflow_dispatch:
 
 jobs:
-  run-dag:
+  run-pipeline:
 
     runs-on: ubuntu-latest
 
     steps:
 
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Install Astro CLI
-        run: |
-          curl -sSL https://install.astronomer.io | sudo bash
-
-      - name: Start Astro
+      - name: Start Airflow
         run: |
           docker compose up -d
 
       - name: Wait for Airflow
         run: sleep 60
+
+    
